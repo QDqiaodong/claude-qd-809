@@ -203,8 +203,11 @@ public class BloodEventListener {
         CrossMatch match = matchRepository.findById(event.matchId()).orElse(null);
         if (match != null && match.getBag() != null) {
             BloodBag bag = match.getBag();
-            bag.markIssued();
-            bagRepository.save(bag);
+            // 发血事务已把血袋条件式置为 ISSUED；此处只作兜底，绝不覆盖同源隔离 / 已报废状态
+            if ("AVAILABLE".equals(bag.getStatus())) {
+                bag.markIssued();
+                bagRepository.save(bag);
+            }
         }
         inventoryService.syncInventory(event.bloodType(), event.component());
 

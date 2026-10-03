@@ -93,13 +93,43 @@ public final class BloodDict {
 
     private static final Map<String, String> BAG_STATUS = Map.of(
             "AVAILABLE", "可用",
+            "QUARANTINED", "同源隔离",
             "ISSUED", "已发出",
             "SCRAPPED", "已报废");
 
     private static final Map<String, String> SCRAP_REASON = Map.of(
             "EXPIRED", "过期",
             "DAMAGED", "破损",
-            "FAILED", "检验不合格");
+            "FAILED", "检验不合格",
+            "REACTION", "输血反应同源");
+
+    private static final Map<String, String> REACTION_STATUS = Map.of(
+            "OPEN", "在办",
+            "EXCLUDED", "排除关联",
+            "CONFIRMED", "确认风险");
+
+    private static final Map<String, String> REACTION_REVIEW = Map.of(
+            "EXCLUDED", "排除关联",
+            "CONFIRMED", "确认风险");
+
+    private static final Map<String, String> REACTION_LINK_TYPE = Map.of(
+            "ISOLATED", "同源隔离袋",
+            "TRACE", "仅追溯");
+
+    private static final Map<String, String> REACTION_LINK_STATUS = Map.of(
+            "QUARANTINED", "隔离中",
+            "RELEASED", "已释放",
+            "SCRAPPED", "已报废",
+            "TRACED", "仅追溯",
+            "KEPT", "保持隔离");
+
+    private static final Map<String, String> REACTION_LEDGER_ACTION = Map.of(
+            "REPORT", "上报",
+            "ISOLATE", "隔离",
+            "RELEASE", "释放",
+            "SCRAP", "报废",
+            "REVIEW", "复核",
+            "KEEP", "保持隔离");
 
     private static final Map<String, String> URGENCY = Map.of(
             "ROUTINE", "常规",
@@ -181,6 +211,30 @@ public final class BloodDict {
 
     public static String scrapReasonName(String reason) {
         return reason == null ? "" : SCRAP_REASON.getOrDefault(reason, reason);
+    }
+
+    public static String reactionStatusName(String status) {
+        return status == null ? "" : REACTION_STATUS.getOrDefault(status, status);
+    }
+
+    public static String reactionReviewName(String result) {
+        return result == null ? "" : REACTION_REVIEW.getOrDefault(result, result);
+    }
+
+    public static String reactionLinkTypeName(String type) {
+        return type == null ? "" : REACTION_LINK_TYPE.getOrDefault(type, type);
+    }
+
+    public static String reactionLinkStatusName(String status) {
+        return status == null ? "" : REACTION_LINK_STATUS.getOrDefault(status, status);
+    }
+
+    public static String reactionActionName(String action) {
+        return action == null ? "" : REACTION_LEDGER_ACTION.getOrDefault(action, action);
+    }
+
+    public static boolean isValidReactionReview(String result) {
+        return result != null && REACTION_REVIEW.containsKey(result);
     }
 
     public static String urgencyName(String urgency) {

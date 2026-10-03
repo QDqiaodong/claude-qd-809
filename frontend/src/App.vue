@@ -7,13 +7,15 @@ import { getDict, getOverview } from './api'
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
 const bloodType = ref('A+')
 provide('bloodType', bloodType)
+provide('goMenu', go)
 
 const menus = [
   { key: 'collection', seq: '01', title: '采血位状态盘', sub: '献血者与采血登记' },
   { key: 'lab', seq: '02', title: '标本检验轨道', sub: '待检/检测中/已放行' },
   { key: 'preparation', seq: '03', title: '成分制备', sub: '红细胞/血浆/血小板/冷沉淀' },
   { key: 'inventory', seq: '04', title: '血型×成分库存', sub: '二维矩阵与出入库' },
-  { key: 'transfusion', seq: '05', title: '交叉配血发血', sub: '医院申请与出库' }
+  { key: 'transfusion', seq: '05', title: '交叉配血发血', sub: '医院申请与出库' },
+  { key: 'reactions', seq: '06', title: '输血不良反应追溯台', sub: '反应上报·同源隔离·质量复核' }
 ]
 
 const current = ref('collection')

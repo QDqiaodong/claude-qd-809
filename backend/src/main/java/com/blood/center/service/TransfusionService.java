@@ -133,6 +133,9 @@ public class TransfusionService {
         }
         BloodBag bag = bagRepository.findByBagNo(request.bagNo())
                 .orElseThrow(() -> new BizException("血袋不存在：" + request.bagNo()));
+        if ("QUARANTINED".equals(bag.getStatus())) {
+            throw new BizException("血袋 " + bag.getBagNo() + " 已因输血不良反应同源隔离，配血一律拒绝");
+        }
         if (!"AVAILABLE".equals(bag.getStatus())) {
             throw new BizException("血袋 " + bag.getBagNo() + " 状态为「"
                     + BloodDict.bagStatusName(bag.getStatus()) + "」，不可用于配血");
@@ -217,6 +220,13 @@ public class TransfusionService {
         if (bag == null) {
             throw new BizException("配血单 " + match.getMatchNo() + " 未关联供血袋，不能出库");
         }
+        if ("QUARANTINED".equals(bag.getStatus())) {
+            throw new BizException("血袋 " + bag.getBagNo() + " 已因输血不良反应同源隔离，禁止发血出库");
+        }
+        if (!"AVAILABLE".equals(bag.getStatus())) {
+            throw new BizException("血袋 " + bag.getBagNo() + " 当前状态为「"
+                    + BloodDict.bagStatusName(bag.getStatus()) + "」，不能发血出库");
+        }
         if (bag.getExpiryDate() != null && !bag.getExpiryDate().isAfter(LocalDate.now())) {
             throw new BizException("血袋 " + bag.getBagNo() + " 已于 " + bag.getExpiryDate()
                     + " 过期，过期血液不允许出库");
@@ -235,8 +245,21 @@ public class TransfusionService {
             throw new BizException(match.getBloodType() + " " + BloodDict.componentName(match.getComponent())
                     + " 库存仅 " + stock + " U，本次需发 " + units + " U，缺口 " + (units - stock) + " U");
         }
+        // 先登记发血领域事件（随事务提交触发 AFTER_COMMIT：扣减库存、回写申请、记流水），
+        // 再在同一事务内用条件式 UPDATE 原子占用血袋（AVAILABLE→ISSUED）：
+        // 与不良反应同源隔离的 AVAILABLE→QUARANTINED 互斥，谁先提交谁生效，风险血袋绝不流出。
         match.issue(request.operator() == null || request.operator().isBlank() ? "姜妍" : request.operator());
-        return toVO(matchRepository.save(match));
+        matchRepository.save(match);
+        int claimed = bagRepository.markIssuedIfAvailable(bag.getId());
+        if (claimed == 0) {
+            BloodBag latest = bagRepository.findById(bag.getId()).orElse(bag);
+            if ("QUARANTINED".equals(latest.getStatus())) {
+                throw new BizException("血袋 " + bag.getBagNo() + " 已因输血不良反应同源隔离，禁止发血出库");
+            }
+            throw new BizException("血袋 " + bag.getBagNo() + " 当前状态为「"
+                    + BloodDict.bagStatusName(latest.getStatus()) + "」，不能发血出库");
+        }
+        return toVO(match);
     }
 
     /**
@@ -302,6 +325,8 @@ public class TransfusionService {
         String block = null;
         if (Boolean.TRUE.equals(match.getIssued())) {
             block = "已出库";
+        } else if (match.getBag() != null && "QUARANTINED".equals(match.getBag().getStatus())) {
+            block = "血袋已因输血不良反应同源隔离，禁止出库";
         } else if ("INCOMPATIBLE".equals(match.getResult())) {
             block = "配血不相合，绝对不允许出库";
         } else if ("SUSPECT".equals(match.getResult())) {

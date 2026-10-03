@@ -65,6 +65,13 @@ export const recoveryMatch = (id) => http.post(`/transfusion/matches/${id}/recov
 export const getIssues = () => http.get('/transfusion/issues')
 export const getHospitalSummary = () => http.get('/transfusion/issues/by-hospital')
 
+/* ===================== 输血不良反应追溯台 ===================== */
+export const getReactions = (status) => http.get('/reactions', qs({ status }))
+export const getReaction = (id) => http.get(`/reactions/${id}`)
+export const getReactionTrace = (matchId) => http.get(`/reactions/trace/${matchId}`)
+export const reportReaction = (data) => http.post('/reactions/report', data)
+export const reviewReaction = (id, data) => http.post(`/reactions/${id}/review`, data)
+
 /* ===================== 概览与词典 ===================== */
 export const getOverview = () => http.get('/stats/overview')
 export const getDict = () => http.get('/stats/dict')

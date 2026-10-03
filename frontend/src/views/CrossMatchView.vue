@@ -11,6 +11,7 @@ import {
 } from '../api'
 
 const bloodType = inject('bloodType')
+const goMenu = inject('goMenu', null)
 const requests = ref([])
 const matches = ref([])
 const loading = ref(false)
@@ -63,6 +64,13 @@ async function doRecovery() {
   } catch (e) {
     ElMessage.error(e.message)
   }
+}
+
+function goReaction() {
+  const m = active.value
+  if (!m || !m.issued) return
+  if (goMenu) goMenu('reactions')
+  ElMessage.info(`可在追溯台针对发血单 ${m.matchNo} 上报不良反应`)
 }
 
 // 新建用血申请
@@ -267,6 +275,15 @@ watch(bloodType, load)
             @click="doRecovery"
           >
             血袋回收核对
+          </el-button>
+          <el-button
+            type="danger"
+            plain
+            style="width: 100%; margin-top: 8px"
+            :disabled="!active.issued"
+            @click="goReaction"
+          >
+            上报输血不良反应
           </el-button>
         </div>
       </div>
