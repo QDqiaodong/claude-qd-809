@@ -3,6 +3,9 @@
 SET NAMES utf8mb4;
 
 -- ========================= 建表 =========================
+DROP TABLE IF EXISTS reaction_step;
+DROP TABLE IF EXISTS reaction_isolation;
+DROP TABLE IF EXISTS reaction_event;
 DROP TABLE IF EXISTS cross_match;
 DROP TABLE IF EXISTS hospital_request;
 DROP TABLE IF EXISTS scrap_record;
@@ -213,6 +216,74 @@ CREATE TABLE cross_match (
     CONSTRAINT fk_match_request FOREIGN KEY (request_id) REFERENCES hospital_request (id),
     CONSTRAINT fk_match_bag FOREIGN KEY (bag_id) REFERENCES blood_bag (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='交叉配血与发血记录';
+
+-- 输血不良反应处置事件（同一发血记录 + 发生时间 + 症状 ⇒ 幂等合并为一宗）
+CREATE TABLE reaction_event (
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    event_no      VARCHAR(32)  NOT NULL COMMENT '事件编号',
+    match_id      BIGINT       NOT NULL COMMENT '发血记录（配血单）',
+    match_no      VARCHAR(32)  NULL COMMENT '配血单号',
+    bag_id        BIGINT       NULL COMMENT '供血血袋',
+    bag_no        VARCHAR(32)  NULL COMMENT '供血袋号',
+    blood_type    VARCHAR(4)   NOT NULL COMMENT '血型',
+    component     VARCHAR(8)   NOT NULL COMMENT '成分',
+    collection_id BIGINT       NULL COMMENT '采血来源（同源隔离依据）',
+    hospital      VARCHAR(128) NOT NULL COMMENT '上报医院',
+    reporter      VARCHAR(32)  NOT NULL COMMENT '处置人（上报人）',
+    symptoms      VARCHAR(255) NOT NULL COMMENT '反应症状',
+    occurred_at   DATETIME     NOT NULL COMMENT '反应发生时间',
+    reported_at   DATETIME     NOT NULL COMMENT '上报时间',
+    dedup_hash    VARCHAR(64)  NOT NULL COMMENT '幂等指纹：发血记录+发生时间+症状',
+    status        VARCHAR(16)  NOT NULL COMMENT 'OPEN 在办/EXCLUDED 已排除关联/CONFIRMED 已确认风险',
+    conclusion    VARCHAR(16)  NULL COMMENT '复核结论 EXCLUDED/CONFIRMED',
+    reviewer      VARCHAR(32)  NULL COMMENT '质量复核人',
+    reviewed_at   DATETIME     NULL COMMENT '复核时间',
+    review_note   VARCHAR(255) NULL COMMENT '复核备注',
+    created_at    DATETIME     NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_reaction_event_no (event_no),
+    UNIQUE KEY uk_reaction_dedup (dedup_hash),
+    KEY idx_reaction_match (match_id),
+    KEY idx_reaction_status (status),
+    KEY idx_reaction_collection (collection_id),
+    CONSTRAINT fk_reaction_match FOREIGN KEY (match_id) REFERENCES cross_match (id),
+    CONSTRAINT fk_reaction_bag FOREIGN KEY (bag_id) REFERENCES blood_bag (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='输血不良反应处置事件';
+
+-- 同源血袋隔离 / 追溯记录（一宗事件 × 一条同源血袋 一行）
+CREATE TABLE reaction_isolation (
+    id                     BIGINT      NOT NULL AUTO_INCREMENT,
+    event_id               BIGINT      NOT NULL COMMENT '处置事件',
+    bag_id                 BIGINT      NOT NULL COMMENT '同源血袋',
+    bag_no                 VARCHAR(32) NOT NULL COMMENT '袋号',
+    blood_type             VARCHAR(4)  NOT NULL COMMENT '血型',
+    component              VARCHAR(8)  NOT NULL COMMENT '成分',
+    volume_ml              INT         NOT NULL DEFAULT 0 COMMENT '容量 ml',
+    bag_status_at_register VARCHAR(16) NOT NULL COMMENT '登记时血袋状态',
+    status                 VARCHAR(16) NOT NULL COMMENT 'ISOLATED 隔离中/RELEASED 已释放/SCRAPPED 已报废/TRACE 仅追溯',
+    created_at             DATETIME    NULL,
+    resolved_at            DATETIME    NULL COMMENT '了结时间（释放/报废/追溯登记）',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_isolation_event_bag (event_id, bag_id),
+    KEY idx_isolation_bag (bag_id),
+    KEY idx_isolation_status (status),
+    CONSTRAINT fk_isolation_event FOREIGN KEY (event_id) REFERENCES reaction_event (id),
+    CONSTRAINT fk_isolation_bag FOREIGN KEY (bag_id) REFERENCES blood_bag (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='同源血袋隔离与追溯记录';
+
+-- 处置台账（只增不改的逐步记录）
+CREATE TABLE reaction_step (
+    id         BIGINT      NOT NULL AUTO_INCREMENT,
+    event_id   BIGINT      NOT NULL COMMENT '处置事件',
+    action     VARCHAR(16) NOT NULL COMMENT 'REPORT/ISOLATE/TRACE/RELEASE/SCRAP/KEEP/REVIEW',
+    bag_no     VARCHAR(32) NULL COMMENT '涉及袋号',
+    detail     VARCHAR(255) NOT NULL COMMENT '步骤说明',
+    operator   VARCHAR(32) NULL COMMENT '操作人',
+    created_at DATETIME    NULL,
+    PRIMARY KEY (id),
+    KEY idx_step_event (event_id),
+    CONSTRAINT fk_step_event FOREIGN KEY (event_id) REFERENCES reaction_event (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='不良反应处置台账';
 
 -- ========================= 种子数据 =========================
 -- 献血者（12 人，含既往献血次数 / 累计献血量 / 暂缓献血截止日期）

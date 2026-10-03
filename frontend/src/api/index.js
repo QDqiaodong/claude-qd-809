@@ -65,6 +65,13 @@ export const recoveryMatch = (id) => http.post(`/transfusion/matches/${id}/recov
 export const getIssues = () => http.get('/transfusion/issues')
 export const getHospitalSummary = () => http.get('/transfusion/issues/by-hospital')
 
+/* ===================== 输血不良反应追溯台 ===================== */
+export const getReactions = (bloodType) => http.get('/reactions', qs({ bloodType }))
+export const reportReaction = (data) => http.post('/reactions', data)
+export const getReactionDetail = (id) => http.get(`/reactions/${id}`)
+export const reviewReaction = (id, data) => http.post(`/reactions/${id}/review`, data)
+export const getReactionTrace = (matchId) => http.get(`/reactions/trace/${matchId}`)
+
 /* ===================== 概览与词典 ===================== */
 export const getOverview = () => http.get('/stats/overview')
 export const getDict = () => http.get('/stats/dict')
@@ -84,6 +91,11 @@ export function fmtTime(value) {
   const d = value instanceof Date ? value : new Date(value)
   const pad = (n) => String(n).padStart(2, '0')
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+export function fmtDateTime(value) {
+  if (!value) return '--'
+  return `${fmtDate(value)} ${fmtTime(value)}`
 }
 
 export default http

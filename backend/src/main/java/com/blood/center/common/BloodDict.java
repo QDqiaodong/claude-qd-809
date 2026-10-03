@@ -93,13 +93,38 @@ public final class BloodDict {
 
     private static final Map<String, String> BAG_STATUS = Map.of(
             "AVAILABLE", "可用",
+            "ISOLATED", "隔离中",
             "ISSUED", "已发出",
             "SCRAPPED", "已报废");
 
     private static final Map<String, String> SCRAP_REASON = Map.of(
             "EXPIRED", "过期",
             "DAMAGED", "破损",
-            "FAILED", "检验不合格");
+            "FAILED", "检验不合格",
+            "REACTION", "反应追溯");
+
+    /** 输血不良反应事件状态 */
+    private static final Map<String, String> REACTION_STATUS = Map.of(
+            "OPEN", "在办",
+            "EXCLUDED", "已排除关联",
+            "CONFIRMED", "已确认风险");
+
+    /** 同源血袋隔离记录状态 */
+    private static final Map<String, String> ISOLATION_STATUS = Map.of(
+            "ISOLATED", "隔离中",
+            "RELEASED", "已释放",
+            "SCRAPPED", "已报废",
+            "TRACE", "仅追溯");
+
+    /** 处置台账动作 */
+    private static final Map<String, String> REACTION_STEP = Map.of(
+            "REPORT", "上报登记",
+            "ISOLATE", "同源隔离",
+            "TRACE", "追溯登记",
+            "RELEASE", "解除隔离",
+            "SCRAP", "转报废",
+            "KEEP", "保持隔离",
+            "REVIEW", "质量复核");
 
     private static final Map<String, String> URGENCY = Map.of(
             "ROUTINE", "常规",
@@ -193,6 +218,23 @@ public final class BloodDict {
 
     public static String matchResultName(String result) {
         return result == null ? "" : MATCH_RESULT.getOrDefault(result, result);
+    }
+
+    public static String reactionStatusName(String status) {
+        return status == null ? "" : REACTION_STATUS.getOrDefault(status, status);
+    }
+
+    public static String isolationStatusName(String status) {
+        return status == null ? "" : ISOLATION_STATUS.getOrDefault(status, status);
+    }
+
+    public static String reactionStepName(String action) {
+        return action == null ? "" : REACTION_STEP.getOrDefault(action, action);
+    }
+
+    /** 复核结论两态：排除关联 / 确认风险 */
+    public static boolean isValidReactionConclusion(String conclusion) {
+        return "EXCLUDED".equals(conclusion) || "CONFIRMED".equals(conclusion);
     }
 
     public static String testResultName(String result) {

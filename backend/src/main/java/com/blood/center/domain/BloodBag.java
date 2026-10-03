@@ -60,7 +60,7 @@ public class BloodBag {
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
 
-    /** AVAILABLE 可用 / ISSUED 已发出 / SCRAPPED 已报废 */
+    /** AVAILABLE 可用 / ISOLATED 隔离中 / ISSUED 已发出 / SCRAPPED 已报废 */
     @Column(name = "status", nullable = false, length = 16)
     private String status;
 
@@ -89,6 +89,27 @@ public class BloodBag {
 
     public void markIssued() {
         this.status = "ISSUED";
+    }
+
+    /**
+     * 同源隔离：不良反应事件建立后立即锁袋，配血与发血都必须拒绝。
+     */
+    public void markIsolated() {
+        this.status = "ISOLATED";
+    }
+
+    /**
+     * 解除隔离：复核排除关联后恢复可用（单向 ISOLATED → AVAILABLE）。
+     */
+    public void releaseIsolation() {
+        this.status = "AVAILABLE";
+    }
+
+    /**
+     * 反应追溯判废：确认风险后转报废（不登记过期事件，报废单由追溯台直接登记）。
+     */
+    public void markScrapped() {
+        this.status = "SCRAPPED";
     }
 
     @DomainEvents

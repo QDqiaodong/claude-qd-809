@@ -13,7 +13,8 @@ const menus = [
   { key: 'lab', seq: '02', title: '标本检验轨道', sub: '待检/检测中/已放行' },
   { key: 'preparation', seq: '03', title: '成分制备', sub: '红细胞/血浆/血小板/冷沉淀' },
   { key: 'inventory', seq: '04', title: '血型×成分库存', sub: '二维矩阵与出入库' },
-  { key: 'transfusion', seq: '05', title: '交叉配血发血', sub: '医院申请与出库' }
+  { key: 'transfusion', seq: '05', title: '交叉配血发血', sub: '医院申请与出库' },
+  { key: 'reaction', seq: '06', title: '输血反应追溯台', sub: '不良反应上报与同源隔离' }
 ]
 
 const current = ref('collection')
